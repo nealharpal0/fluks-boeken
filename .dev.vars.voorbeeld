@@ -1,0 +1,5 @@
+# Kopieer dit bestand naar .dev.vars voor lokaal ontwikkelen (wordt NIET gecommit).
+# In productie zet je deze waarden met: npx wrangler secret put NAAM
+BEHEER_WACHTWOORD="kies-een-lang-wachtwoord"
+GEHEIME_SLEUTEL="minimaal-32-willekeurige-tekens-hier-invullen"
+SMTP_WACHTWOORD=""

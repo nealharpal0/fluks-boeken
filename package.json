@@ -1,0 +1,31 @@
+{
+  "name": "fluks-boeken",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fluks Boeken – online boekingssysteem voor kleine afspraakbedrijven (Cloudflare Workers + D1 + Hono)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "demo": "wrangler d1 migrations apply DB --local --env demo && wrangler dev --env demo",
+    "deploy": "wrangler deploy",
+    "deploy:demo": "wrangler deploy --env demo",
+    "db:migreer": "wrangler d1 migrations apply DB --remote",
+    "db:migreer:demo": "wrangler d1 migrations apply DB --remote --env demo",
+    "check": "tsc --noEmit && npm run check-config",
+    "check-config": "tsx scripts/check-config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "hono": "4.13.13",
+    "worker-mailer": "1.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.8",
+    "@cloudflare/workers-types": "5.20261016.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "wrangler": "4.153.0"
+  }
+}
