@@ -481,7 +481,7 @@ a.dag:hover {
   color: var(--primair-tekst);
 }
 .dag.niet-beschikbaar {
-  color: #6b7280;
+  color: #4b5563;
   background: #f3f4f6;
   border-style: dashed;
 }

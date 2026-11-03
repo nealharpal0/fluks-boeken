@@ -68,7 +68,7 @@ export const Pagina: FC<PropsWithChildren<PaginaProps>> = (p) => {
           Naar de inhoud
         </a>
         {p.demo ? (
-          <div class="demo-balk" role="note">
+          <aside class="demo-balk" aria-label="Demo-melding">
             <strong>Demo</strong> – dit is een voorbeeldomgeving van Fluks Boeken met een fictief bedrijf. Er worden geen echte e-mails verstuurd.
             {p.beheer ? null : (
               <>
@@ -76,7 +76,7 @@ export const Pagina: FC<PropsWithChildren<PaginaProps>> = (p) => {
                 <a href="/beheer">Bekijk het beheer</a> (wachtwoord: <code>demo</code>).
               </>
             )}
-          </div>
+          </aside>
         ) : null}
         <header class="kop">
           <div class={`kop-binnen ${p.smal && !p.beheer ? "smal" : ""}`}>
