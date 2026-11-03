@@ -118,6 +118,8 @@ export interface BoekPaginaProps extends Basis {
   eersteVrijeDag: string | null;
   waarden: FormWaarden;
   fouten: Record<string, string>;
+  /** Het gekozen tijdstip was net bezet: laat de klant in het formulier zelf een nieuwe tijd kiezen. */
+  herkies?: boolean;
 }
 
 function dagdeel(tijd: string): "Ochtend" | "Middag" | "Avond" {
@@ -254,12 +256,13 @@ export const BoekPagina: FC<BoekPaginaProps> = (p) => {
         </Stap>
       ) : null}
 
-      {p.datum && p.tijd ? (
+      {p.datum && (p.tijd || (p.herkies && p.tijden.length)) ? (
         <Stap nummer={3} titel="Jouw gegevens" id="gegevens">
           <p class="samenvatting">
             <strong>{b.naam}</strong>
             <br />
-            {formatDatumLang(p.datum)} om {p.tijd}
+            {formatDatumLang(p.datum)}
+            {p.tijd ? ` om ${p.tijd}` : null}
             <br />
             <span class="klein">Duur ca. {formatDuur(b.duurMinuten)}</span>
           </p>
@@ -333,7 +336,24 @@ const BoekFormulier: FC<BoekPaginaProps> = (p) => {
       novalidate
     >
       <input type="hidden" name="datum" value={p.datum ?? ""} />
-      <input type="hidden" name="tijd" value={p.tijd ?? ""} />
+      {p.tijd ? (
+        <input type="hidden" name="tijd" value={p.tijd} />
+      ) : (
+        <fieldset class="toestemmingen">
+          <legend>Kies een ander tijdstip op {p.datum ? formatDatumLang(p.datum, false) : ""}</legend>
+          <p class="hulp">Je gegevens blijven bewaard; kies een nieuwe tijd en verstuur opnieuw.</p>
+          <ul class="tijden" role="list">
+            {p.tijden.map((t, i) => (
+              <li>
+                <label class="tijd tijd-keuze">
+                  <input type="radio" name="tijd" value={t} required checked={i === 0} />
+                  <span>{t}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+      )}
       <div class="valstrik" aria-hidden="true">
         <label for="veld-website">Laat dit veld leeg</label>
         <input id="veld-website" name="website" type="text" tabindex={-1} autocomplete="off" />

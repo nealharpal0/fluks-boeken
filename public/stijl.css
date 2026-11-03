@@ -1115,3 +1115,22 @@ a.lijst-item:hover strong {
     display: none;
   }
 }
+.tijd-keuze {
+  position: relative;
+  font-weight: 600;
+}
+.tijd-keuze input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.tijd-keuze:has(input:checked) {
+  background: var(--primair);
+  border-color: var(--primair);
+  color: var(--primair-tekst);
+}
+.tijd-keuze:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}

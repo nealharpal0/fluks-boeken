@@ -5,6 +5,7 @@
  *  - scheduled: geplande berichten en opruimtaken (Cron Trigger)
  */
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { type AppOpties, maakApp } from "./app";
 import { controleerConfig } from "./config/laden";
 import { vulDemoIndienNodig } from "./demo/vullen";
@@ -97,6 +98,7 @@ export function maakWorker(opties: AppOpties = {}) {
   });
 
   hono.onError((fout, c) => {
+    if (fout instanceof HTTPException) return fout.getResponse(); // bijv. 403 van de CSRF-controle
     console.error("Onverwachte fout:", fout);
     const app = c.get("app");
     if (!app) return c.text("Er ging iets mis.", 500);

@@ -6,7 +6,7 @@ import { binnenLimiet, meldAf } from "../db/overig";
 import { dagenOverzicht, vrijeTijdsloten } from "../lib/beschikbaarheid";
 import { googleAgendaLink, maakIcal } from "../lib/ical";
 import { datumVan, isGeldigeDatum, isGeldigeTijd, plusDagen } from "../lib/tijd";
-import { FoutPagina } from "../views/layout";
+import { FoutPagina, type Melding } from "../views/layout";
 import { AfmeldPagina, AfspraakPagina, BoekPagina, type FormWaarden, LEGE_WAARDEN, PrivacyPagina, StartPagina } from "../views/klant";
 import { bestandenVeld, bezoekerIp, type Ctx, leesMelding, type Omgeving, tekstVeld, toon, zetMelding } from "./hulp";
 
@@ -35,6 +35,8 @@ interface BoekState {
   datum?: string | null;
   tijd?: string | null;
   status?: 200 | 409 | 422;
+  melding?: Melding;
+  herkies?: boolean;
 }
 
 async function toonBoekPagina(c: Ctx, behandelingId: string, state: BoekState = {}) {
@@ -71,7 +73,7 @@ async function toonBoekPagina(c: Ctx, behandelingId: string, state: BoekState = 
 
   const tijden = datum ? vrijeTijdsloten({ ...basis, datum }) : [];
   let tijd = gevraagdeTijd && isGeldigeTijd(gevraagdeTijd) && tijden.includes(gevraagdeTijd) ? gevraagdeTijd : null;
-  let melding = leesMelding(c);
+  let melding = state.melding ?? leesMelding(c);
   if (gevraagdeTijd && !tijd && !melding) {
     melding = { soort: "info", tekst: "Dit tijdstip is niet (meer) beschikbaar. Kies een ander moment." };
     tijd = null;
@@ -93,6 +95,7 @@ async function toonBoekPagina(c: Ctx, behandelingId: string, state: BoekState = 
       eersteVrijeDag={eersteVrijeDag}
       waarden={state.waarden ?? LEGE_WAARDEN}
       fouten={state.fouten ?? {}}
+      herkies={state.herkies}
     />,
     state.status ?? 200,
   );
@@ -157,9 +160,15 @@ klant.post("/boeken/:id", async (c) => {
     return c.redirect(`/afspraak/${uitkomst.afspraak.token}?nieuw=1`, 303);
   }
   if (uitkomst.slotBezet) {
-    zetMelding(c, { soort: "fout", tekst: uitkomst.fouten.tijd ?? "Dit tijdstip is niet meer beschikbaar." });
     // Formulier opnieuw tonen zonder gekozen tijd, ingevulde gegevens blijven staan.
-    return toonBoekPagina(c, behandelingId, { waarden, datum: invoer.datum, tijd: null, status: 409 });
+    return toonBoekPagina(c, behandelingId, {
+      waarden,
+      datum: invoer.datum,
+      tijd: null,
+      herkies: true,
+      status: 409,
+      melding: { soort: "fout", tekst: uitkomst.fouten.tijd ?? "Dit tijdstip is niet meer beschikbaar." },
+    });
   }
   return toonBoekPagina(c, behandelingId, { waarden, fouten: uitkomst.fouten, datum: invoer.datum, tijd: invoer.tijd, status: 422 });
 });
