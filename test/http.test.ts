@@ -332,6 +332,10 @@ describe("geplande taken en configuratie", () => {
     expect(n!.n).toBeGreaterThan(10);
     const berichten = await env.DB.prepare("SELECT COUNT(*) AS n FROM berichten WHERE inhoud_html IS NOT NULL").first<{ n: number }>();
     expect(berichten!.n).toBeGreaterThan(10);
+    // Zonder BASIS_URL wijzen links in de demo-e-mails naar het adres waarop de demo bezocht wordt.
+    const voorbeeld = await env.DB.prepare("SELECT inhoud_html FROM berichten WHERE soort = 'bevestiging' LIMIT 1").first<{ inhoud_html: string }>();
+    expect(voorbeeld!.inhoud_html).toContain(`${BASIS}/afspraak/`);
+    expect(voorbeeld!.inhoud_html).not.toContain("localhost");
     const login = await vraag(
       "/beheer/inloggen",
       { method: "POST", headers: { Origin: BASIS, "Content-Type": "application/x-www-form-urlencoded" }, body: "wachtwoord=demo" },

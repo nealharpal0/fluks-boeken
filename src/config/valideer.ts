@@ -170,5 +170,18 @@ export function valideerConfig(c: KlantConfig): ConfigControle {
     if (!(c.privacy.gegevensBewarenMaanden >= 1)) fouten.push("privacy.gegevensBewarenMaanden moet 1 of meer zijn.");
   }
 
+  // Voorbeeldgegevens die nog vervangen moeten worden (.example is een gereserveerd voorbeelddomein).
+  const voorbeeld = [
+    ["basisUrl", c.basisUrl],
+    ["bedrijf.email", c.bedrijf?.email],
+    ["email.afzenderAdres", c.email?.afzenderAdres],
+    ["email.beheerderAdres", c.email?.beheerderAdres],
+    ["email.smtp.host", c.email?.smtp?.host],
+  ].filter(([, v]) => typeof v === "string" && /\.example(\/|:|$)/i.test(v));
+  if (voorbeeld.length) {
+    waarschuwingen.push(`Deze instellingen bevatten nog voorbeeldgegevens (.example): ${voorbeeld.map(([k]) => k).join(", ")}.`);
+  }
+  if (c.bedrijf?.googleReviewUrl?.includes("VOORBEELD")) waarschuwingen.push("bedrijf.googleReviewUrl is nog de voorbeeldlink.");
+
   return { fouten, waarschuwingen };
 }

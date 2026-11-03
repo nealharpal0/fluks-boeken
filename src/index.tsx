@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { type AppOpties, maakApp } from "./app";
 import { controleerConfig } from "./config/laden";
+import { leesInstelling, schrijfInstelling } from "./db/overig";
 import { vulDemoIndienNodig } from "./demo/vullen";
 import { voerGeplandeTakenUit } from "./planner";
 import { beheer } from "./routes/beheer";
@@ -61,6 +62,12 @@ export function maakWorker(opties: AppOpties = {}) {
 
     if (app.demo) {
       try {
+        // Zonder BASIS_URL: links in de demo-e-mails wijzen naar het adres waarop de demo bezocht wordt.
+        if (!c.env.BASIS_URL) {
+          const herkomst = new URL(c.req.url).origin;
+          app.config = { ...app.config, basisUrl: herkomst };
+          if ((await leesInstelling(app.db, "demo_basis_url")) !== herkomst) await schrijfInstelling(app.db, "demo_basis_url", herkomst);
+        }
         await vulDemoIndienNodig(app, true);
       } catch (e) {
         console.error("Demodata vullen mislukt:", e);
@@ -113,6 +120,10 @@ export function maakWorker(opties: AppOpties = {}) {
     async scheduled(_controller: ScheduledController, env: Bindings, ctx: ExecutionContext): Promise<void> {
       const app = maakApp(env, opties);
       const werk = (async () => {
+        if (app.demo && !env.BASIS_URL) {
+          const basisUrl = await leesInstelling(app.db, "demo_basis_url");
+          if (basisUrl) app.config = { ...app.config, basisUrl };
+        }
         if (app.demo && Number(app.nu().slice(11, 13)) >= 3) await vulDemoIndienNodig(app, false);
         const r = await voerGeplandeTakenUit(app);
         console.log("Geplande taken uitgevoerd:", JSON.stringify(r));
