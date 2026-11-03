@@ -379,7 +379,7 @@ const BoekFormulier: FC<BoekPaginaProps> = (p) => {
           hulp={cfg.formulier.fotos.uitleg ?? "Je kunt eventueel foto's meesturen."}
          invoer={(a) => (
             <>
-              <input {...a} name="fotos" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple data-max={String(cfg.formulier.fotos.maxAantal)} />
+              <input {...a} name="fotos" type="file" accept="image/jpeg,image/png,image/webp" multiple data-max={String(cfg.formulier.fotos.maxAantal)} />
               <div class="foto-voorbeelden" data-foto-voorbeelden aria-live="polite"></div>
             </>
           )} />

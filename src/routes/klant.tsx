@@ -108,6 +108,10 @@ klant.post("/boeken/:id", async (c) => {
   const behandelingId = c.req.param("id");
   if (!vindBehandeling(app, behandelingId)) return nietGevonden(c);
 
+  // Foto's worden in de browser verkleind; alles boven 12 MB is geen normaal formulier.
+  if (Number(c.req.header("content-length") ?? 0) > 12_000_000) {
+    return c.text("Het formulier is te groot. Stuur minder of kleinere foto's mee.", 413);
+  }
   let body: Record<string, unknown>;
   try {
     body = (await c.req.parseBody({ all: true })) as Record<string, unknown>;

@@ -54,6 +54,16 @@ function kopregels(b: UitgaandBericht): Record<string, string> {
   return h;
 }
 
+const VERZEND_TIJDSLIMIET_MS = 30_000;
+
+function metTijdslimiet<T>(belofte: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const limiet = new Promise<never>((_, nee) => {
+    timer = setTimeout(() => nee(new Error(`Geen antwoord van de SMTP-server binnen ${ms / 1000} seconden`)), ms);
+  });
+  return Promise.race([belofte, limiet]).finally(() => clearTimeout(timer));
+}
+
 export class SmtpVerzender implements Verzender {
   readonly soort = "smtp" as const;
   private verbinding: Promise<WorkerMailer> | null = null;
@@ -87,15 +97,24 @@ export class SmtpVerzender implements Verzender {
       this.verbinding = null; // volgende poging opnieuw verbinden
       throw new Error(`Kan geen verbinding maken met ${e.smtp?.host}:${e.smtp?.poort}: ${(fout as Error).message}`);
     }
-    await mailer.send({
-      from: { name: e.afzenderNaam, email: e.afzenderAdres },
-      to: b.aan,
-      reply: e.antwoordAdres ?? this.config.bedrijf.email,
-      subject: b.onderwerp,
-      html: b.html,
-      text: b.tekst,
-      headers: kopregels(b),
-    });
+    try {
+      await metTijdslimiet(
+        mailer.send({
+          from: { name: e.afzenderNaam, email: e.afzenderAdres },
+          to: b.aan,
+          reply: e.antwoordAdres ?? this.config.bedrijf.email,
+          subject: b.onderwerp,
+          html: b.html,
+          text: b.tekst,
+          headers: kopregels(b),
+        }),
+        VERZEND_TIJDSLIMIET_MS,
+      );
+    } catch (fout) {
+      // Na een fout is de verbinding mogelijk onbruikbaar: sluiten en bij het volgende bericht opnieuw verbinden.
+      await this.sluit();
+      throw fout;
+    }
   }
 
   async sluit(): Promise<void> {
@@ -103,7 +122,7 @@ export class SmtpVerzender implements Verzender {
     this.verbinding = null;
     if (v) {
       try {
-        await (await v).close();
+        await metTijdslimiet((await v).close(), 5_000);
       } catch {
         // verbinding was al dicht
       }
