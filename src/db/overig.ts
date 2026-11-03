@@ -131,10 +131,10 @@ export async function schrijfInstelling(db: D1Database, sleutel: string, waarde:
 
 // ---------- Opruimen (AVG) ----------
 
-/** Verwijdert foto's van afspraken die langer dan `dagen` geleden waren. */
+/** Verwijdert foto's van afspraken die vóór `grens` eindigden (vanuit de kleine fotostabel gezocht). */
 export async function ruimFotosOp(db: D1Database, grens: Moment): Promise<number> {
   const r = await db
-    .prepare("DELETE FROM fotos WHERE afspraak_id IN (SELECT id FROM afspraken WHERE eind < ?1)")
+    .prepare("DELETE FROM fotos WHERE EXISTS (SELECT 1 FROM afspraken a WHERE a.id = fotos.afspraak_id AND a.eind < ?1)")
     .bind(grens)
     .run();
   return r.meta.changes;
@@ -144,13 +144,13 @@ export async function ruimFotosOp(db: D1Database, grens: Moment): Promise<number
 export async function anonimiseerOud(db: D1Database, grens: Moment): Promise<number> {
   const [, r] = await db.batch([
     db.prepare(
-      "UPDATE berichten SET ontvanger = '', inhoud_html = NULL, inhoud_tekst = NULL WHERE afspraak_id IN (SELECT id FROM afspraken WHERE eind < ?1 AND geanonimiseerd = 0)",
+      "UPDATE berichten SET ontvanger = '', inhoud_html = NULL, inhoud_tekst = NULL WHERE afspraak_id IN (SELECT id FROM afspraken WHERE geanonimiseerd = 0 AND start < ?1 AND eind < ?1)",
     ).bind(grens),
     db.prepare(
       `UPDATE afspraken SET naam = 'Verwijderd', email = '', telefoon = '', opmerking = '', extra_velden = '{}',
               interne_notitie = '', reden = '', toestemming_herinnering = 0, toestemming_review = 0,
               toestemming_onderhoud = 0, geanonimiseerd = 1
-        WHERE eind < ?1 AND geanonimiseerd = 0`,
+        WHERE geanonimiseerd = 0 AND start < ?1 AND eind < ?1`,
     ).bind(grens),
   ]);
   return r?.meta.changes ?? 0;

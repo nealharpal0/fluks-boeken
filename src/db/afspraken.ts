@@ -16,6 +16,13 @@ import { type Afspraak, type AfspraakStatus, BEZETTENDE_STATUSSEN, type Blokkade
 const BEZET_SQL = `(${BEZETTENDE_STATUSSEN.map((s) => `'${s}'`).join(", ")})`;
 
 /**
+ * Geen afspraak duurt (met buffer) langer dan 2 dagen. Met deze extra
+ * ondergrens op `start` kan SQLite de index gebruiken in plaats van de hele
+ * historie te lezen; dat houdt het aantal gelezen rijen (D1-limiet) laag.
+ */
+const TWEE_DAGEN_EERDER = (expr: string) => `strftime('%Y-%m-%dT%H:%M', ${expr}, '-2 days')`;
+
+/**
  * SQL-voorwaarde: het interval [start, bezetTot) botst niet met een blokkade
  * en er lopen nergens binnen dat interval al `capaciteit` afspraken tegelijk.
  * Parameters: start, bezetTot, negeerId (-1 = niets negeren), capaciteit.
@@ -36,7 +43,8 @@ function geenConflict(p: { start: string; bezetTot: string; negeer: string; capa
       WHERE (
         SELECT COUNT(*) FROM afspraken c
          WHERE c.status IN ${BEZET_SQL} AND c.id != ${p.negeer}
-           AND c.start <= punten.punt AND c.bezet_tot > punten.punt
+           AND c.start <= punten.punt AND c.start > ${TWEE_DAGEN_EERDER("punten.punt")}
+           AND c.bezet_tot > punten.punt
       ) >= ${p.capaciteit}
     )`;
 }
@@ -195,7 +203,7 @@ export async function bezetteTijden(db: D1Database, van: Moment, tot: Moment): P
   const { results } = await db
     .prepare(
       `SELECT id, start, bezet_tot AS bezetTot FROM afspraken
-        WHERE status IN ${BEZET_SQL} AND start < ?2 AND bezet_tot > ?1`,
+        WHERE status IN ${BEZET_SQL} AND start < ?2 AND start > ${TWEE_DAGEN_EERDER("?1")} AND bezet_tot > ?1`,
     )
     .bind(van, tot)
     .all<BezetteTijd>();
@@ -244,7 +252,9 @@ export async function afsprakenIn(
 ): Promise<Afspraak[]> {
   const plekken = statussen.map((_, i) => `?${i + 3}`).join(", ");
   const { results } = await db
-    .prepare(`SELECT * FROM afspraken WHERE start < ?2 AND eind > ?1 AND status IN (${plekken}) ORDER BY start, id`)
+    .prepare(
+      `SELECT * FROM afspraken WHERE status IN (${plekken}) AND start < ?2 AND start > ${TWEE_DAGEN_EERDER("?1")} AND eind > ?1 ORDER BY start, id`,
+    )
     .bind(van, tot, ...statussen)
     .all<Afspraak>();
   return results;

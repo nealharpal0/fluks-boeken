@@ -17,7 +17,7 @@ import type { App } from "./app";
 import { berichtBestaat, herprobeerMislukte, verstuurBericht, type VerstuurUitkomst } from "./berichten/dienst";
 import * as sjabloon from "./berichten/sjablonen";
 import type { BerichtSoort } from "./config/schema";
-import { anonimiseerOud, ruimFotosOp, ruimLimietenOp } from "./db/overig";
+import { anonimiseerOud, leesInstelling, ruimFotosOp, ruimLimietenOp, schrijfInstelling } from "./db/overig";
 import { datumVan, isGeldigeDatum, plusDagen, plusUren } from "./lib/tijd";
 import type { Afspraak } from "./types";
 
@@ -93,18 +93,18 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
         .prepare(
           `SELECT a.* FROM afspraken a
             WHERE a.status IN ('bevestigd', 'afgerond') AND a.toestemming_review = 1 AND ${NIET_AFGEMELD}
+              AND a.start <= ?3 AND a.start > ?4
               AND COALESCE(a.klaar_op, a.eind) <= ?1 AND a.eind > ?2
               AND NOT EXISTS (SELECT 1 FROM berichten b WHERE b.sleutel = 'review:' || a.id)
             ORDER BY a.eind`,
         )
-        .bind(grens, plusUren(nu, -7 * 24))
+        .bind(grens, plusUren(nu, -7 * 24), nu, plusUren(nu, -8 * 24))
         .all<Afspraak>();
       const nietVaker = cfg.review.nietVakerDanDagen;
       for (const a of results) {
         const recent = await app.db
           .prepare(
-            `SELECT 1 AS x FROM berichten b JOIN afspraken x ON x.id = b.afspraak_id
-              WHERE b.soort = 'review' AND x.email = ?1 AND b.aangemaakt_op > ?2 LIMIT 1`,
+            "SELECT 1 AS x FROM berichten b WHERE b.soort = 'review' AND b.ontvanger = ?1 AND b.aangemaakt_op > ?2 LIMIT 1",
           )
           .bind(a.email, plusUren(nu, -nietVaker * 24))
           .first();
@@ -115,8 +115,8 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
       // Eén herinnering, alleen als er nog niet op de reviewlink is geklikt.
       const { results: herinneren } = await app.db
         .prepare(
-          `SELECT a.* FROM afspraken a JOIN berichten b ON b.sleutel = 'review:' || a.id
-            WHERE b.status IN ('verzonden', 'gelogd') AND b.verzonden_op <= ?1 AND b.verzonden_op > ?2
+          `SELECT a.* FROM berichten b JOIN afspraken a ON a.id = b.afspraak_id
+            WHERE b.soort = 'review' AND b.verzonden_op <= ?1 AND b.verzonden_op > ?2 AND b.status IN ('verzonden', 'gelogd')
               AND a.review_geklikt_op IS NULL AND a.toestemming_review = 1 AND ${NIET_AFGEMELD}
               AND NOT EXISTS (SELECT 1 FROM berichten r WHERE r.sleutel = 'review_herinnering:' || a.id)`,
         )
@@ -137,6 +137,7 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
             `SELECT a.* FROM afspraken a
               WHERE a.behandeling_id = ?1 AND a.status IN ('bevestigd', 'afgerond') AND a.toestemming_onderhoud = 1
                 AND ${NIET_AFGEMELD}
+                AND a.start <= ?2 AND a.start > ?4
                 AND a.eind <= ?2 AND a.eind > ?3
                 AND NOT EXISTS (
                   SELECT 1 FROM afspraken later
@@ -145,7 +146,7 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
                 )
                 AND NOT EXISTS (SELECT 1 FROM berichten m WHERE m.sleutel = 'onderhoud:' || a.id)`,
           )
-          .bind(b.id, grens, plusUren(grens, -14 * 24))
+          .bind(b.id, grens, plusUren(grens, -14 * 24), plusUren(grens, -15 * 24))
           .all<Afspraak>();
         for (const a of results) {
           await stuur("onderhoud", `onderhoud:${a.id}`, a, () => sjabloon.onderhoud(ctx, a, weken, b.onderhoudTekst));
@@ -160,6 +161,8 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
       for (const s of cfg.seizoen ?? []) {
         const datum = `${jaar}-${s.datum}`;
         if (!isGeldigeDatum(datum) || vandaag < datum || vandaag > plusDagen(datum, 6)) continue;
+        const klaarSleutel = `seizoen_klaar:${s.id}:${jaar}`;
+        if (await leesInstelling(app.db, klaarSleutel)) continue;
         // De meest recente afspraak per klant bepaalt of er (nog) toestemming is.
         const { results } = await app.db
           .prepare(
@@ -176,6 +179,8 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
         for (const a of results) {
           await stuur("seizoen", `seizoen:${s.id}:${jaar}:${a.email}`, a, () => sjabloon.seizoen(ctx, a, s));
         }
+        // Iedereen gehad? Dan hoeft deze (zwaardere) zoekopdracht dit jaar niet meer te draaien.
+        if (budget > 0 && results.length === 0) await schrijfInstelling(app.db, klaarSleutel, nu);
       }
     }
 
@@ -185,7 +190,9 @@ export async function voerGeplandeTakenUit(app: App): Promise<PlannerResultaat> 
     await app.verzender.sluit();
   }
 
-  // 7. Privacy-opruiming
+  // 7. Privacy-opruiming: één keer per dag is genoeg.
+  if ((await leesInstelling(app.db, "opruiming_op")) === datumVan(nu)) return res;
+  await schrijfInstelling(app.db, "opruiming_op", datumVan(nu));
   res.fotosVerwijderd = await ruimFotosOp(app.db, plusUren(nu, -app.config.privacy.fotosBewarenDagen * 24));
   res.geanonimiseerd = await anonimiseerOud(app.db, plusDagen(datumVan(nu), -Math.round(app.config.privacy.gegevensBewarenMaanden * 30.44)) + "T00:00");
   await ruimLimietenOp(app.db, Date.now() - 24 * 3600_000);

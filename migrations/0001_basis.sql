@@ -34,6 +34,7 @@ CREATE TABLE afspraken (
 CREATE INDEX idx_afspraken_status_start ON afspraken (status, start);
 CREATE INDEX idx_afspraken_start ON afspraken (start);
 CREATE INDEX idx_afspraken_email ON afspraken (email);
+CREATE INDEX idx_afspraken_anoniem_start ON afspraken (geanonimiseerd, start);
 
 CREATE TABLE blokkades (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,6 +76,7 @@ CREATE TABLE berichten (
 CREATE INDEX idx_berichten_afspraak ON berichten (afspraak_id);
 CREATE INDEX idx_berichten_soort_ontvanger ON berichten (soort, ontvanger);
 CREATE INDEX idx_berichten_status ON berichten (status);
+CREATE INDEX idx_berichten_soort_verzonden ON berichten (soort, verzonden_op);
 
 -- Klanten die zich hebben afgemeld voor herinneringen, reviewverzoeken en onderhoudsberichten.
 CREATE TABLE afmeldingen (
