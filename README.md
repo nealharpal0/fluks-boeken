@@ -153,7 +153,7 @@ Je krijgt een `database_id` terug. Zet die in [`wrangler.jsonc`](wrangler.jsonc)
 npm run check-config
 ```
 
-Fouten (✖) moet je oplossen; waarschuwingen (⚠) zijn tips. Een typecontrole van alles doe je met `npm run check`.
+Fouten (✖) moet je oplossen; waarschuwingen (⚠) zijn tips. Het script waarschuwt ook als er nog voorbeeldgegevens (`.example`) in staan. Een typecontrole van alles doe je met `npm run check`.
 
 Je kunt de site van de klant lokaal bekijken met `npm run dev` (zet dan eerst de geheimen uit stap 5 in een bestand `.dev.vars`, zie [`.dev.vars.voorbeeld`](.dev.vars.voorbeeld)).
 
@@ -320,7 +320,7 @@ De demo is een aparte omgeving (`env.demo` in [`wrangler.jsonc`](wrangler.jsonc)
 npx wrangler d1 create fluks-boeken-demo --jurisdiction=eu
 ```
 
-Zet de `database_id` in `wrangler.jsonc` onder `env.demo.d1_databases`, en optioneel `"BASIS_URL"` onder `env.demo.vars` (het adres van de demo, voor links in de voorbeeldmails). Daarna:
+Zet de `database_id` in `wrangler.jsonc` onder `env.demo.d1_databases`. Links in de voorbeeldmails gebruiken automatisch het adres waarop de demo bezocht wordt; wil je een vast adres, zet dan `"BASIS_URL"` onder `env.demo.vars`. Daarna:
 
 ```bash
 npm run db:migreer:demo
