@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Glans &amp; Co">
+  <rect width="64" height="64" rx="16" fill="#0f5e7a"/>
+  <path d="M32 11c7 9.5 13 16.7 13 24.2C45 42.8 39.2 49 32 49s-13-6.2-13-13.8C19 27.7 25 20.5 32 11z" fill="#ffffff"/>
+  <path d="M26.5 36.5c0 3.4 2.3 6 5.5 6.6" fill="none" stroke="#0f5e7a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M49 12l1.6 4.4L55 18l-4.4 1.6L49 24l-1.6-4.4L43 18l4.4-1.6z" fill="#e8a33d"/>
+</svg>

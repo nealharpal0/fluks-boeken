@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /beheer
+Disallow: /afspraak/
+Disallow: /afmelden/
+Disallow: /r/
+Disallow: /ical/
