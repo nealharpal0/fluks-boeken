@@ -102,7 +102,7 @@ cd fluks-boeken
 npm install
 ```
 
-> Met npm 11/12 zie je mogelijk geen waarschuwing over "install scripts": de benodigde uitzonderingen (esbuild en workerd) staan al in `allowScripts` in `package.json`.
+> Gebruik je npm 11 of 12? Die blokkeert standaard "install scripts" van pakketten. De twee die dit project nodig heeft (esbuild en workerd) staan al goedgekeurd in `allowScripts` in `package.json`, dus je hoeft niets goed te keuren.
 
 ```bash
 npm run demo
