@@ -88,11 +88,21 @@ test/                    ← Vitest-tests
 
 ## Snel proberen: de demo
 
-Je hebt [Node.js](https://nodejs.org) 20 of nieuwer nodig. Een Cloudflare-account is voor lokaal draaien niet nodig.
+Je hebt [Node.js](https://nodejs.org) 20 of nieuwer nodig. Een Cloudflare-account is voor lokaal draaien niet nodig. Haal eerst het project op en ga de map in (alle `npm`-commando's werken alleen binnen de map `fluks-boeken`):
+
+```bash
+git clone https://github.com/nealharpal0/fluks-boeken.git
+```
+
+```bash
+cd fluks-boeken
+```
 
 ```bash
 npm install
 ```
+
+> Met npm 11/12 zie je mogelijk geen waarschuwing over "install scripts": de benodigde uitzonderingen (esbuild en workerd) staan al in `allowScripts` in `package.json`.
 
 ```bash
 npm run demo
