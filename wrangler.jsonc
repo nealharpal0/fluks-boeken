@@ -1,0 +1,51 @@
+/**
+ * Cloudflare-configuratie van Fluks Boeken.
+ * Per klant pas je hier alleen "name" en het database_id aan (zie README).
+ * Geheimen (wachtwoorden) staan NIET hier: gebruik `npx wrangler secret put`.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fluks-boeken",
+  "main": "src/index.tsx",
+  "compatibility_date": "2026-10-01",
+
+  // Statische bestanden (CSS, JS, logo's) uit de map public/
+  "assets": { "directory": "./public" },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fluks-boeken",
+      // Vervang door de id die `npx wrangler d1 create ...` je geeft:
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Geplande berichten (herinneringen, reviewverzoeken, ...) elke 15 minuten.
+  "triggers": { "crons": ["*/15 * * * *"] },
+
+  "vars": {
+    "MODUS": "productie"
+    // "BASIS_URL": "https://boeken.mijnbedrijf.nl"  // optioneel, overschrijft basisUrl uit klant.config.ts
+  },
+
+  "observability": { "enabled": true },
+
+  "env": {
+    // Demo-omgeving met het fictieve bedrijf "Glans & Co": npm run demo / npm run deploy:demo
+    "demo": {
+      "name": "fluks-boeken-demo",
+      "vars": { "MODUS": "demo" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "fluks-boeken-demo",
+          "database_id": "00000000-0000-0000-0000-000000000001",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "triggers": { "crons": ["*/15 * * * *"] }
+    }
+  }
+}
